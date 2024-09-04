@@ -1,0 +1,73 @@
+from pycti import OpenCTIApiClient
+
+# Configura la conexión a la API de OpenCTI
+api_url = 'http://ip:8080/graphql'  # Asegúrate de que esta URL sea correcta
+api_token = ''  # Reemplaza con tu token de API
+
+# Inicializa el cliente de la API de OpenCTI
+client = OpenCTIApiClient(api_url, api_token)
+
+# ID de la organización creadora
+organization_id = "identity--370573e8-b597-5f03-8ead-81e2339630f0"  # Reemplaza con el ID de tu organización
+
+# Define los raw event logs (Ejemplo de logs en formato JSON)
+raw_event_logs = {
+    "timestamp": "2024-05-27T11:45:00Z",
+    "source_ip": "192.168.1.10",
+    "destination_ip": "192.168.1.20",
+    "event_type": "Malware Detection",
+    "user": "john.doe",
+    "file": {
+        "name": "malicious_file.exe",
+        "path": "C:\\Users\\john.doe\\Downloads\\malicious_file.exe",
+        "hash": {
+            "md5": "44d88612fea8a8f36de82e1278abb02f",
+            "sha1": "5d41402abc4b2a76b9719d911017c592",
+            "sha256": "2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d"
+        }
+    },
+    "network": {
+        "protocol": "HTTP",
+        "src_port": 12345,
+        "dest_port": 80,
+        "http": {
+            "method": "GET",
+            "host": "malicious.com",
+            "uri": "/malware/payload"
+        }
+    },
+    "details": "Emotet malware detected on the network. The malicious file was downloaded by user john.doe from source IP 192.168.1.10 to destination IP 192.168.1.20."
+}
+
+# Define la alerta basada en un indicador de dirección IPv4
+ipv4_alert = {
+    "type": "indicator",
+    "name": "Malicious IP: 192.168.1.10",
+    "description": "Alerta generada por la detección de una dirección IP maliciosa: 192.168.1.10.",
+    "pattern_type": "stix",
+    "pattern": "[ipv4-addr:value = '192.168.1.10']",
+    "valid_from": "2024-05-27T12:00:00Z",
+    "x_opencti_main_observable_type": "IPv4-Addr",
+    "createdBy": organization_id,
+    "x_opencti_raw_event_logs": raw_event_logs  # Campo personalizado para los raw event logs
+}
+
+# Función para crear la alerta
+def create_alert(client, alert):
+    try:
+        created_alert = client.indicator.create(
+            name=alert["name"],
+            description=alert["description"],
+            pattern_type=alert["pattern_type"],
+            pattern=alert["pattern"],
+            valid_from=alert["valid_from"],
+            x_opencti_main_observable_type=alert["x_opencti_main_observable_type"],
+            createdBy=alert["createdBy"],
+            x_opencti_raw_event_logs=alert["x_opencti_raw_event_logs"]  # Incluir el campo personalizado
+        )
+        print(f"Alerta de IP maliciosa creada: {created_alert}")
+    except Exception as e:
+        print(f"Error al crear la alerta de IP maliciosa: {e}")
+
+# Llama a la función para crear la alerta
+create_alert(client, ipv4_alert)
